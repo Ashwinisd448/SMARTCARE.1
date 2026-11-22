@@ -1,0 +1,22 @@
+{
+  "name": "smartcare-healthcare-system",
+  "version": "1.0.0",
+  "description": "SMARTCARE – Modern Responsive Healthcare Management System with Firebase Phone Auth, Firestore, FCM, and Cloud Functions",
+  "main": "js/app.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve": "npx serve -l 3000 ."
+  },
+  "keywords": [
+    "smartcare",
+    "healthcare-management",
+    "hospital-management",
+    "firebase-phone-auth",
+    "firestore",
+    "fcm-push-notifications",
+    "cloud-functions",
+    "hackathon-project"
+  ],
+  "author": "SMARTCARE Healthcare Technologies",
+  "license": "MIT"
+}

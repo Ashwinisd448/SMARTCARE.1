@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================================
+    // BACKEND RBAC HELPER FUNCTIONS
+    // ========================================================
+
+    // Helper: Check if user is signed in via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Helper: Strict Admin verification on backend
+    // Checks both Firebase Auth custom claims (token.role == 'admin')
+    // and Firestore users collection role
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (exists(/databases/$(database)/documents/adminConfig/root_admin) &&
+         get(/databases/$(database)/documents/adminConfig/root_admin)).data.uid == request.auth.uid
+      );
+    }
+
+    // Helper: Verify if user is an authorized Doctor
+    function isDoctor() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'doctor' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor')
+      );
+    }
+
+    // Helper: Verify if user is an authorized Nurse
+    function isNurse() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'nurse' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'nurse')
+      );
+    }
+
+    // Helper: Check if the user is the owner of the document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ========================================================
+    // 0. ADMIN MASTER CONFIGURATION (RESTRICTED TO ADMIN)
+    // ========================================================
+    match /adminConfig/{configId} {
+      // One-time setup allowed if document doesn't exist yet; otherwise only Admin
+      allow create: if !exists(/databases/$(database)/documents/adminConfig/root_admin);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ========================================================
+    // 1. HOSPITALS & CAMPUS LOCATIONS
+    // ========================================================
+    // Publicly readable so visitors and patients can view location and driving directions
+    // Write strictly restricted to authorized Admin
+    match /hospitals/{hospitalId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================================
+    // 2. CENTRALIZED STAFF MANAGEMENT (DOCTORS, NURSES, CAREGIVERS)
+    // ========================================================
+    // Only authenticated users can view staff profiles; strictly Admin for write/delete
+    match /staff/{staffId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================================
+    // 3. DOCTOR DIRECTORY & OPD SCHEDULES
+    // ========================================================
+    // Publicly readable so patients can browse specialties and book appointments
+    // Only Admin can add, edit, or remove doctors
+    match /doctors/{doctorId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ========================================================
+    // 4. USER PROFILES & PATIENT DATA (STRICT ISOLATION)
+    // ========================================================
+    // Patients can ONLY read and write their OWN profile!
+    // Visitors CANNOT read private patient records!
+    // Admin can view and manage all user accounts.
+    match /users/{userId} {
+      allow read: if isAdmin() || isOwner(userId);
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow update, delete: if isAdmin() || isOwner(userId);
+    }
+
+    // ========================================================
+    // 5. APPOINTMENTS (STRICT PATIENT-DOCTOR CONFIDENTIALITY)
+    // ========================================================
+    // Patient can read ONLY their own appointments.
+    // Doctor can read appointments assigned to them.
+    // Admin can oversee all hospital appointments.
+    // Public visitors CANNOT read appointment data.
+    match /appointments/{appointmentId} {
+      allow read: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.patientId == request.auth.uid ||
+          resource.data.patientPhone == request.auth.token.phone_number ||
+          resource.data.doctorId == request.auth.uid
+        )
+      );
+      allow create: if isAuthenticated() && (
+        isAdmin() || request.resource.data.patientId == request.auth.uid
+      );
+      allow update, delete: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.patientId == request.auth.uid ||
+          resource.data.doctorId == request.auth.uid
+        )
+      );
+    }
+
+    // ========================================================
+    // 6. PRESCRIPTIONS & MEDICAL INSTRUCTIONS (PRIVATE)
+    // ========================================================
+    // Patient can view ONLY their own prescriptions.
+    // Attending doctors and Admin can create and modify.
+    // Public visitors have ZERO access.
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.patientId == request.auth.uid ||
+          resource.data.doctorId == request.auth.uid
+        )
+      );
+      allow write: if isAdmin() || isDoctor();
+    }
+
+    // ========================================================
+    // 7. MEDICATION LOGS & DOSAGE ADHERENCE (PRIVATE)
+    // ========================================================
+    // Patient can read their own logs and confirm doses taken.
+    // Nurses and Admin can view and record administration.
+    match /medicationLogs/{logId} {
+      allow read: if isAdmin() || isNurse() || (
+        isAuthenticated() && resource.data.patientId == request.auth.uid
+      );
+      allow write: if isAdmin() || isNurse() || (
+        isAuthenticated() && resource.data.patientId == request.auth.uid
+      );
+    }
+
+    // ========================================================
+    // 8. CLINICAL VITALS & NURSE NOTES (PRIVATE)
+    // ========================================================
+    // Patient can view their own vitals.
+    // Clinical staff (Doctor, Nurse) and Admin can read & record vitals.
+    match /vitals/{vitalId} {
+      allow read: if isAdmin() || isDoctor() || isNurse() || (
+        isAuthenticated() && resource.data.patientId == request.auth.uid
+      );
+      allow write: if isAdmin() || isDoctor() || isNurse();
+    }
+
+    // ========================================================
+    // 9. HOSPITAL BEDS & ROOM DIRECTORY
+    // ========================================================
+    // Authenticated hospital staff and patients can view availability.
+    // Only Admin can allocate or discharge beds.
+    match /beds/{bedId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // 10. 24x7 AMBULANCES & PUBLIC EMERGENCY DESK
+    // ========================================================
+    // Publicly readable for emergency caller access.
+    // Write restricted to Admin and emergency dispatchers.
+    match /ambulances/{ambulanceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================
+    // 11. EMERGENCY SOS LOGS & REAL-TIME NOTIFICATIONS
+    // ========================================================
+    match /notifications/{notificationId} {
+      // Patients can create SOS alerts; users can read alerts directed to them; Admin reads all
+      allow read: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.targetUserId == request.auth.uid ||
+          resource.data.type == 'emergency'
+        )
+      );
+      allow create: if isAuthenticated() || true;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

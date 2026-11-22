@@ -1,0 +1,226 @@
+/**
+ * SMARTCARE – Custom Healthcare Management System Theme & Styles
+ * Responsive, clean, clinical glassmorphic UI design
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --primary: #0284c7;
+  --primary-dark: #0369a1;
+  --secondary: #0d9488;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --bg-dark: #0f172a;
+  --card-bg: rgba(30, 41, 59, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-main);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #0b1120;
+  color: #f1f5f9;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(13, 148, 136, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%);
+  background-attachment: fixed;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+}
+
+.glass-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 12px 30px -10px rgba(2, 132, 199, 0.25);
+}
+
+/* Pulse animation for SOS emergency button */
+@keyframes sosPulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.sos-pulse-btn {
+  animation: sosPulse 2s infinite;
+}
+
+/* Status Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: capitalize;
+}
+
+.badge-pending {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-confirmed,
+.badge-taken,
+.badge-administered,
+.badge-stable {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-critical,
+.badge-rejected,
+.badge-missed,
+.badge-cancelled {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-observation {
+  background-color: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+/* Modal backdrop & animation */
+.modal-backdrop {
+  background-color: rgba(11, 17, 32, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+/* Medication Timeline */
+.timeline-stem {
+  position: relative;
+}
+.timeline-stem::before {
+  content: '';
+  position: absolute;
+  top: 1.5rem;
+  bottom: 0;
+  left: 1.25rem;
+  width: 2px;
+  background: #334155;
+}
+
+/* Custom form inputs */
+.smartcare-input {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  color: #f8fafc;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  width: 100%;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.smartcare-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Hide scrollbar for clean horizontal card rails on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Tab active state */
+.tab-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+.tab-btn {
+  transition: all 0.2s ease;
+}
+
+/* Print view for prescriptions */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Google Maps Places Autocomplete Dropdown Styling */
+.pac-container {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  font-family: var(--font-main) !important;
+  z-index: 99999 !important;
+  margin-top: 4px;
+}
+.pac-item {
+  color: #e2e8f0 !important;
+  border-top: 1px solid #1e293b !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  cursor: pointer;
+}
+.pac-item:hover {
+  background-color: #1e293b !important;
+}
+.pac-item-query {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
+}
+.pac-matched {
+  color: #38bdf8 !important;
+}
+.pac-icon {
+  filter: invert(1);
+}
